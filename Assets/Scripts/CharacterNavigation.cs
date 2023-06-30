@@ -12,6 +12,9 @@ public class CharacterNavigation : MonoBehaviour
     public Vector3Int mazeOrigin;
     public float speed = 10.0f;
     public float closeThreshold = 0.1f;
+    public Transform player;
+    public float playerActivateDistance;
+    public float playerReEnterDistance; // Should be less than `playerActivateDistance`
 
     private Vector3 entryPosition; // The entry position of the maze
     private GridNode[,] grid; // 2D grid representing the maze
@@ -23,6 +26,11 @@ public class CharacterNavigation : MonoBehaviour
     [SerializeField]
     private List<Vector3> path = new();
     private Vector3 currObjectiveWaypoint;
+
+    [SerializeField]
+    private bool shouldMove = false;
+    [SerializeField]
+    private bool moveEnabled = false;
 
     private CharacterController characterController; // Reference to the CharacterController component
 
@@ -47,8 +55,48 @@ public class CharacterNavigation : MonoBehaviour
             return;
         }
 
+        DetermineShouldMove();
+
         // Move the character along the path
-        MoveCharacter();
+        if (moveEnabled && shouldMove)
+        {
+            MoveCharacter();
+        }
+       
+    }
+
+    public bool GetShouldMove()
+    {
+        return shouldMove;
+    }
+
+    public bool GetMoveEnabled()
+    {
+        return moveEnabled;
+    }
+
+    void DetermineShouldMove()
+    {
+        RaycastHit hit, reEnterHit;
+        Vector3 rayDirection = player.position - transform.position;
+        bool keyInteractionEnabled = Physics.Raycast(transform.position, rayDirection, out hit, playerActivateDistance);
+        bool reEntered = Physics.Raycast(transform.position, rayDirection, out reEnterHit, playerReEnterDistance);
+
+        if (Input.GetKeyDown(KeyCode.E) && keyInteractionEnabled && hit.transform == player)
+        {
+            moveEnabled = ! moveEnabled;
+        }
+
+        if (hit.transform != player)
+        {
+            shouldMove = false;
+        }
+
+        if (reEnterHit.transform == player)
+        {
+            shouldMove = true;
+        }
+
     }
 
     bool IsObstacle(Vector3 position, float heightThreshold)
